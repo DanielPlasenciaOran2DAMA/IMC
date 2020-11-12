@@ -4,10 +4,9 @@ import java.text.NumberFormat;
 import java.text.ParseException;
 
 import javafx.application.Application;
-import javafx.beans.property.DoubleProperty;
-import javafx.beans.property.SimpleDoubleProperty;
 import javafx.geometry.Pos;
 import javafx.stage.Stage;
+import javafx.util.converter.NumberStringConverter;
 import javafx.scene.Scene;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
@@ -16,10 +15,10 @@ import javafx.scene.layout.VBox;
 
 public class Imc extends Application {
 
-	private DoubleProperty peso = new SimpleDoubleProperty();
-	private DoubleProperty altura = new SimpleDoubleProperty();
-	private Label imcLabel, pesosLabel;
 	private TextField pesoText, alturaText;
+	private Label imcLabel;
+	private ImcModel model = new ImcModel();
+	private Label pesosLabel;
 
 	public void start(Stage primaryStage) throws Exception {
 		pesoText = new TextField();
@@ -34,15 +33,15 @@ public class Imc extends Application {
 		alturaText.setPrefColumnCount(4);
 
 		imcLabel = new Label("");
-		pesosLabel = new Label();
+		pesosLabel = new Label("");
 
 		HBox alturaBox = new HBox();
-		alturaBox.setAlignment(Pos.CENTER);
+		alturaBox.setAlignment(Pos.BASELINE_CENTER);
 		alturaBox.setSpacing(5);
 		alturaBox.getChildren().addAll(new Label("Altura: "), alturaText, new Label(" cm"));
 
 		HBox imcBox = new HBox();
-		imcBox.setAlignment(Pos.CENTER);
+		imcBox.setAlignment(Pos.BASELINE_CENTER);
 		imcBox.setSpacing(5);
 		imcBox.getChildren().addAll(new Label("IMC: "), imcLabel);
 
@@ -50,7 +49,11 @@ public class Imc extends Application {
 		root.setAlignment(Pos.CENTER);
 		root.getChildren().addAll(pesoBox, alturaBox, imcBox, pesosLabel);
 
-		imcLabel.textProperty().bind(peso.divide(altura.multiply(altura)).multiply(10000).asString());
+		pesoText.textProperty().bindBidirectional(model.peso, new NumberStringConverter());
+		alturaText.textProperty().bindBidirectional(model.altura, new NumberStringConverter());
+		model.pesosProperty().bindBidirectional(pesosLabel.textProperty());
+		imcLabel.textProperty()
+				.bind(model.peso.divide(model.altura.multiply(model.altura)).multiply(10000).asString("%.2f"));
 		imcLabel.textProperty().addListener((o, ov, nv) -> {
 			mostrarPesos();
 		});
@@ -61,26 +64,28 @@ public class Imc extends Application {
 		primaryStage.setScene(scene);
 		primaryStage.show();
 	}
-
+	
 	private void mostrarPesos() {
-		try {
-			double imc = NumberFormat.getInstance().parse(imcLabel.getText()).doubleValue();
-			if (imc < 18.5) {
-				pesosLabel.setText("Bajo peso");
-			} else if (imc >= 18.5 && imc < 25) {
-				pesosLabel.setText("Normal");
-			} else if (imc >= 25 && imc < 30) {
-				pesosLabel.setText("Sobrepeso");
-			} else if (imc >= 30) {
-				pesosLabel.setText("Obeso");
-			} else {
-				pesosLabel.setText("Bajo peso | Normal | Sobrepeso | Obeso");
-			}
+        try {
+            if (model.getPeso() != 0 & model.getAltura() != 0) {
+                double resultado = NumberFormat.getInstance().parse(imcLabel.getText()).doubleValue();
 
-		} catch (ParseException e) {
-
-		}
-	}
+                if (resultado < 18.5) {
+                    model.setPesos("Bajo peso");
+                } else if (resultado >= 18.5 & resultado < 25) {
+                    pesosLabel.setText("Normal");
+                } else if (resultado >= 25 & resultado < 30) {
+                	pesosLabel.setText("Sobrepeso");
+                } else if (resultado >= 30) {
+                	pesosLabel.setText("Obeso");
+                }
+            } else {
+            	pesosLabel.setText("Bajo peso | Normal | Sobrepeso | Obeso");
+            }
+        } catch (ParseException e) {
+            // e.printStackTrace();
+        }
+    }
 
 	public static void main(String[] args) {
 		launch(args);
